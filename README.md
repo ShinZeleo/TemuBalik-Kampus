@@ -1,73 +1,63 @@
-# React + TypeScript + Vite
+# Temu Balik Kampus 🧑‍🎓
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white "TypeScript")](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white "Tailwind CSS")](https://tailwindcss.com/)
+[![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFBA5F "Vite")](https://vitejs.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white "Node.js")](https://nodejs.org/)
 
-Currently, two official plugins are available:
+Proyek ini merupakan sebuah aplikasi web modern yang dibangun dengan TypeScript, Tailwind CSS, dan Vite. Tujuan utama dari proyek ini adalah menyediakan platform yang interaktif dan responsif, kemungkinan untuk menghubungkan kembali alumni kampus atau mengelola acara kampus.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Fitur Utama ✨
 
-## React Compiler
+*   **Desain Responsif 📱**: Tampilan yang optimal di berbagai perangkat, dari desktop hingga seluler, berkat Tailwind CSS.
+*   **Pengembangan Cepat ⚡**: Menggunakan Vite untuk _hot module replacement_ dan _build_ yang cepat, mempercepat proses pengembangan.
+*   **Kode Terstruktur 🏗️**: Arsitektur kode yang rapi dan mudah dipelihara dengan TypeScript.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Tech Stack 🛠️
 
-## Expanding the ESLint configuration
+*   Bahasa: TypeScript
+*   Framework CSS: Tailwind CSS
+*   Bundler: Vite
+*   Runtime: Node.js
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Instalasi & Menjalankan 🚀
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1.  Clone repositori:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+    ```bash
+    git clone https://github.com/ShinZeleo/TemuBalik-Kampus
+    ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+2.  Masuk ke direktori:
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+    ```bash
+    cd TemuBalik-Kampus
+    ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+3.  Install dependensi:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+    ```bash
+    npm install
+    ```
+
+4.  Jalankan proyek:
+
+    ```bash
+    npm run dev
+    ```
+
+## Cara Berkontribusi 🤝
+
+1.  Fork repositori ini.
+2.  Buat branch untuk fitur atau perbaikan Anda: `git checkout -b fitur/nama-fitur`
+3.  Lakukan commit perubahan: `git commit -m "Tambahkan: Deskripsi perubahan"`
+4.  Push ke branch Anda: `git push origin fitur/nama-fitur`
+5.  Buat Pull Request.
+
+## Lisensi 📄
+
+Tidak ada lisensi yang ditentukan.
+
+
+---
+README.md ini dihasilkan secara otomatis oleh [README.MD Generator](https://github.com/emRival) — dibuat dengan ❤️ oleh [emRival](https://github.com/emRival)
