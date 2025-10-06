@@ -1,33 +1,74 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  Search, PlusCircle, LogOut, ShieldCheck, ShieldAlert,
+  Search, PlusCircle, LogOut, ShieldCheck,
   CheckCircle2, XCircle, Upload, MapPin, CalendarDays, Image as ImageIcon
 } from "lucide-react";
 
-/**
- * Temu Balik Kampus – Frontend Prototype
- * Single-file React component that previews 3 screens:
- * 1) Beranda (Galeri Barang)
- * 2) Form Lapor Barang Ditemukan
- * 3) Dasbor Admin (Verifikasi Laporan)
- *
- * Catatan:
- * - Prototipe statis. Tidak ada backend. Data di memori.
- */
+/** ====== Tipe data ====== */
+type Item = {
+  id: string;
+  title: string;
+  location: string;
+  date: string;         // yyyy-mm-dd
+  image: string | null; // Data URL
+  status: "published";
+};
 
-const initialItems = [
+type ReportQueue = {
+  id: string;
+  title: string;
+  location: string;
+  date: string;         // yyyy-mm-dd
+  image: string | null; // Data URL
+};
+
+type ReportPayload = {
+  title: string;
+  description: string;
+  location: string;
+  date: string;
+  contact: string;
+  file?: File;
+};
+
+/** ====== Data awal demo ====== */
+const initialItems: Item[] = [
   { id: "itm-ktm", title: "KTM", location: "Perpustakaan Pusat", date: "2025-09-14", image: null, status: "published" },
   { id: "itm-kunci", title: "Kunci", location: "Kantin FTI", date: "2025-09-16", image: null, status: "published" },
   { id: "itm-tumbler", title: "Tumbler", location: "Ruang Kelas A-203", date: "2025-09-18", image: null, status: "published" },
 ];
 
-const mockQueue = [
-  { id: "rep-1", title: "Jaket Hitam", location: "Depan Ruang Rapat Fakultas", date: "2025-09-19" },
-  { id: "rep-2", title: "Payung Bening", location: "Halte Kampus Timur", date: "2025-09-19" },
-  { id: "rep-3", title: "Kalkulator Casio", location: "Laboratorium Komputer", date: "2025-09-20" },
+const initialQueue: ReportQueue[] = [
+  { id: "rep-1", title: "Jaket Hitam", location: "Depan Ruang Rapat Fakultas", date: "2025-09-19", image: null },
+  { id: "rep-2", title: "Payung Bening", location: "Halte Kampus Timur", date: "2025-09-19", image: null },
+  { id: "rep-3", title: "Kalkulator Casio", location: "Laboratorium Komputer", date: "2025-09-20", image: null },
 ];
 
-function NavLink({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
+/** ====== Util penyimpanan lokal ====== */
+function saveState(key: string, data: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch {
+    // Ignore write errors (e.g., private mode, quota exceeded)
+  }
+}
+function loadState<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch { return fallback; }
+}
+async function fileToDataURL(file?: File) {
+  if (!file) return null;
+  return new Promise<string | null>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(null);
+    r.readAsDataURL(file);
+  });
+}
+
+/** ====== UI kecil ====== */
+function NavLink({ active, children, onClick }:
+  { active: boolean; children: React.ReactNode; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
@@ -39,7 +80,6 @@ function NavLink({ active, children, onClick }: { active: boolean; children: Rea
     </button>
   );
 }
-
 function Badge({ children }: { children: React.ReactNode }) {
   return (
     <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
@@ -47,7 +87,6 @@ function Badge({ children }: { children: React.ReactNode }) {
     </span>
   );
 }
-
 function PlaceholderImage() {
   return (
     <div className="flex h-40 w-full items-center justify-center rounded-xl bg-gradient-to-br from-slate-100 to-slate-200">
@@ -55,8 +94,7 @@ function PlaceholderImage() {
     </div>
   );
 }
-
-function Card({ item }: { item: { id: string; title: string; location: string; date: string; image: string | null } }) {
+function Card({ item }: { item: Item }) {
   return (
     <div className="group rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
       {item.image ? (
@@ -82,7 +120,9 @@ function Card({ item }: { item: { id: string; title: string; location: string; d
   );
 }
 
-function Gallery({ items, onClickReport }: { items: typeof initialItems; onClickReport: () => void }) {
+/** ====== Gallery publik ====== */
+function Gallery({ items, onClickReport }:
+  { items: Item[]; onClickReport: () => void }) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -98,10 +138,8 @@ function Gallery({ items, onClickReport }: { items: typeof initialItems; onClick
       <div className="rounded-3xl bg-white/80 p-6 shadow-sm ring-1 ring-inset ring-white/40 backdrop-blur">
         <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Temukan Kembali Barangmu!</h1>
-            <p className="mt-1 max-w-2xl text-sm text-slate-600">
-              Pusat informasi barang hilang dan ditemukan di sekitar kampus.
-            </p>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Temukan Kembali Barangmu</h1>
+            <p className="mt-1 max-w-2xl text-sm text-slate-600">Pusat informasi barang hilang dan ditemukan di sekitar kampus.</p>
           </div>
           <button
             onClick={onClickReport}
@@ -121,13 +159,9 @@ function Gallery({ items, onClickReport }: { items: typeof initialItems; onClick
           />
         </div>
 
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">
-          Barang Ditemukan Terbaru
-        </h2>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-500">Barang Ditemukan Terbaru</h2>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((it) => (
-            <Card key={it.id} item={it} />
-          ))}
+          {filtered.map((it) => (<Card key={it.id} item={it} />))}
           {!filtered.length && (
             <div className="col-span-full rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
               Tidak ada hasil untuk <span className="font-semibold">"{query}"</span>.
@@ -139,16 +173,9 @@ function Gallery({ items, onClickReport }: { items: typeof initialItems; onClick
   );
 }
 
-type ReportPayload = {
-  title: string;
-  description: string;
-  location: string;
-  date: string;
-  contact: string;
-  file?: File;
-};
-
-function ReportForm({ onBack, onSubmitted }: { onBack: () => void; onSubmitted: (payload: ReportPayload) => void }) {
+/** ====== Form laporan publik ====== */
+function ReportForm({ onBack, onSubmitted }:
+  { onBack: () => void; onSubmitted: (payload: ReportPayload) => void }) {
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -214,7 +241,7 @@ function ReportForm({ onBack, onSubmitted }: { onBack: () => void; onSubmitted: 
               <input
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="Contoh: Kartu Identitas Mahasiswa (KTM)"
+                placeholder="Contoh. Kartu Identitas Mahasiswa"
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-emerald-500 placeholder:text-slate-400 focus:ring-2"
                 required
               />
@@ -224,7 +251,7 @@ function ReportForm({ onBack, onSubmitted }: { onBack: () => void; onSubmitted: 
               <input
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
-                placeholder="Mis. Gedung Rektorat, Lantai 2"
+                placeholder="Mis. Gedung Rektorat Lantai 2"
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-emerald-500 placeholder:text-slate-400 focus:ring-2"
                 required
               />
@@ -244,7 +271,7 @@ function ReportForm({ onBack, onSubmitted }: { onBack: () => void; onSubmitted: 
               <input
                 value={form.contact}
                 onChange={(e) => setForm({ ...form, contact: e.target.value })}
-                placeholder="Email/No. HP (akan disembunyikan publik)"
+                placeholder="Email atau No. HP"
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-emerald-500 placeholder:text-slate-400 focus:ring-2"
               />
             </div>
@@ -256,7 +283,7 @@ function ReportForm({ onBack, onSubmitted }: { onBack: () => void; onSubmitted: 
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               rows={4}
-              placeholder="Ciri unik, kondisi, dan keterangan tambahan."
+              placeholder="Ciri unik dan keterangan tambahan."
               className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none ring-emerald-500 placeholder:text-slate-400 focus:ring-2"
             />
           </div>
@@ -282,9 +309,14 @@ function ReportForm({ onBack, onSubmitted }: { onBack: () => void; onSubmitted: 
   );
 }
 
+/** ====== Dasbor Admin tanpa grafik dulu ====== */
 function AdminDashboard({
-  queue, onApprove, onReject,
-}: { queue: typeof mockQueue; onApprove: (id: string) => void; onReject: (id: string) => void }) {
+  queue, onApprove, onReject
+}: {
+  queue: ReportQueue[];
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+}) {
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -314,8 +346,8 @@ function AdminDashboard({
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">No</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Nama Barang</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Lokasi Ditemukan</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Tanggal Lapor</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Lokasi</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">Tanggal</th>
                 <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-600">Aksi</th>
               </tr>
             </thead>
@@ -348,50 +380,78 @@ function AdminDashboard({
               ))}
               {!filtered.length && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">
-                    Tidak ada data.
-                  </td>
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-slate-500">Tidak ada data.</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 text-xs text-slate-500">
-          <ShieldAlert className="h-4 w-4" />
-          <span>Tips: siapkan SOP verifikasi dan audit trail untuk perubahan status.</span>
+        <div className="mt-4 text-xs text-slate-500">Tips. Siapkan SOP verifikasi dan jejak audit sederhana.</div>
+      </div>
+    </div>
+  );
+}
+
+/** ====== Login ====== */
+function LoginScreen({ onLogin }:{ onLogin:(role:"user"|"admin")=>void }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 to-slate-300 px-4">
+      <div className="w-full max-w-sm rounded-3xl bg-white p-8 shadow-lg text-center">
+        <h1 className="mb-6 text-2xl font-bold text-slate-800">Temu Balik Kampus</h1>
+        <p className="mb-6 text-sm text-slate-500">Pilih jenis pengguna untuk masuk</p>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={() => onLogin("user")}
+            className="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+          >
+            Masuk sebagai Pengguna
+          </button>
+          <button
+            onClick={() => onLogin("admin")}
+            className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+          >
+            Masuk sebagai Admin
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
+/** ====== App utama ====== */
 export default function App() {
-  type View = "home" | "report" | "admin";
-  const [view, setView] = useState<View>("home");
-  const [items, setItems] = useState(initialItems);
-  const [queue, setQueue] = useState(mockQueue);
-  const [adminName] = useState("Admin (Unhas)");
+  type View = "login" | "home" | "report" | "admin";
+  const [view, setView] = useState<View>("login");
+  const [currentUser, setCurrentUser] = useState<"user" | "admin" | null>(null);
 
-  type ReportPayload = {
-    title: string;
-    description: string;
-    location: string;
-    date: string;
-    contact: string;
-    file?: File;
-  };
+  const [items, setItems] = useState<Item[]>(() => loadState("tbk_items", initialItems));
+  const [queue, setQueue] = useState<ReportQueue[]>(() => loadState("tbk_queue", initialQueue));
 
-  function handleSubmitted(payload: ReportPayload) {
-    const newRep = {
+  useEffect(() => { saveState("tbk_items", items); }, [items]);
+  useEffect(() => { saveState("tbk_queue", queue); }, [queue]);
+
+  function handleLogin(role: "user" | "admin") {
+    setCurrentUser(role);
+    setView(role === "admin" ? "admin" : "home");
+  }
+  function handleLogout() {
+    setCurrentUser(null);
+    setView("login");
+  }
+
+  async function handleSubmitted(payload: ReportPayload) {
+    const image = await fileToDataURL(payload.file);
+    const newRep: ReportQueue = {
       id: `rep-${Date.now()}`,
       title: payload.title || "Barang Tanpa Nama",
       location: payload.location || "-",
       date: payload.date || new Date().toISOString().slice(0, 10),
+      image: image ?? null,
     };
     setQueue((q) => [newRep, ...q]);
     setView("home");
-    alert("Laporan masuk ke antrian verifikasi admin. Terima kasih!");
+    alert("Laporan masuk ke antrian verifikasi admin. Terima kasih.");
   }
 
   function approve(id: string) {
@@ -399,21 +459,15 @@ export default function App() {
     if (!rep) return;
     setQueue((q) => q.filter((r) => r.id !== id));
     setItems((prev) => [
-      {
-        id: `itm-${Date.now()}`,
-        title: rep.title,
-        location: rep.location,
-        date: rep.date,
-        image: null,
-        status: "published",
-      },
+      { id: `itm-${Date.now()}`, title: rep.title, location: rep.location, date: rep.date, image: rep.image ?? null, status: "published" },
       ...prev,
     ]);
   }
-
   function reject(id: string) {
     setQueue((q) => q.filter((r) => r.id !== id));
   }
+
+  if (!currentUser || view === "login") return <LoginScreen onLogin={handleLogin} />;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-100 to-slate-200">
@@ -424,35 +478,41 @@ export default function App() {
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 font-black text-white">TB</span>
             <div className="leading-tight">
               <div className="text-sm font-extrabold tracking-tight">Temu Balik Kampus</div>
-              <div className="text-[11px] text-slate-300">Lost & Found UNHAS</div>
+              <div className="text-[11px] text-slate-300">{currentUser === "admin" ? "Admin Portal" : "Lost & Found UNHAS"}</div>
             </div>
           </div>
 
           <nav className="flex items-center gap-1">
-            <NavLink active={view === "home"} onClick={() => setView("home")}>Galeri Barang</NavLink>
-            <NavLink active={view === "report"} onClick={() => setView("report")}>Lapor Barang</NavLink>
-            <NavLink active={view === "admin"} onClick={() => setView("admin")}>Dasbor Admin</NavLink>
+            {currentUser === "user" && (
+              <>
+                <NavLink active={view === "home"} onClick={() => setView("home")}>Galeri Barang</NavLink>
+                <NavLink active={view === "report"} onClick={() => setView("report")}>Lapor Barang</NavLink>
+              </>
+            )}
+            {currentUser === "admin" && (
+              <NavLink active={view === "admin"} onClick={() => setView("admin")}>Dasbor Admin</NavLink>
+            )}
           </nav>
 
-          <button className="hidden items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15 sm:inline-flex">
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15"
+          >
             <LogOut className="h-4 w-4" /> Keluar
           </button>
         </div>
       </header>
 
       {/* Screen Content */}
-      {view === "home" && <Gallery items={items} onClickReport={() => setView("report")} />}
-      {view === "report" && <ReportForm onBack={() => setView("home")} onSubmitted={handleSubmitted} />}
-      {view === "admin" && <AdminDashboard queue={queue} onApprove={approve} onReject={reject} />}
+      {currentUser === "user" && view === "home" && <Gallery items={items} onClickReport={() => setView("report")} />}
+      {currentUser === "user" && view === "report" && <ReportForm onBack={() => setView("home")} onSubmitted={handleSubmitted} />}
+      {currentUser === "admin" && view === "admin" && <AdminDashboard queue={queue} onApprove={approve} onReject={reject} />}
 
       {/* Footer */}
       <footer className="border-t border-white/50 bg-white/60">
         <div className="mx-auto max-w-6xl px-4 py-6 text-xs text-slate-500">
           <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
-            <p>
-              <span className="font-semibold text-slate-700">{adminName}</span>
-              <span> • Prototype Frontend v0.1</span>
-            </p>
+            <p><span className="font-semibold text-slate-700">{currentUser}</span> • Prototype v0.3</p>
             <p>© {new Date().getFullYear()} Temu Balik Kampus. Semua hak dilindungi seperlunya.</p>
           </div>
         </div>
