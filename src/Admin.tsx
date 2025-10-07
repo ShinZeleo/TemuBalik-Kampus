@@ -30,6 +30,10 @@ export function AdminDashboard({
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([date, count]) => ({ date, count }));
   }, [items]);
 
+  const totalAvailable = useMemo(() => items.filter(i => i.status === "available").length, [items]);
+  const totalClaimed   = useMemo(() => items.filter(i => i.status === "claimed").length, [items]);
+
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="rounded-3xl bg-white/90 p-6 shadow-sm ring-1 ring-inset ring-white/40 backdrop-blur">
@@ -52,8 +56,12 @@ export function AdminDashboard({
 
         <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-600">Ringkasan Publikasi per Tanggal</h2>
+          <div className="mb-2 mt-4 flex justify-center  gap-3 text-sm text-slate-600">
+            <span>Available. <b>{totalAvailable}</b></span>
+            <span>Sudah diambil. <b>{totalClaimed}</b></span>
+          </div>
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" >
               <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
@@ -80,8 +88,8 @@ export function AdminDashboard({
                     {c.note && <div className="text-xs text-slate-600">Catatan. {c.note}</div>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => onAcceptClaim(c.id)} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Terima</button>
-                    <button onClick={() => onRejectClaim(c.id)} className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700">Tolak</button>
+                    <button onClick={() => { if (confirm("Terima klaim ini")) onAcceptClaim(c.id); }} className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700" aria-label="Verifikasi laporan">Terima</button>
+                    <button onClick={() => { if (confirm("Tolak klaim ini")) onRejectClaim(c.id); }} className="rounded-md bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700" aria-label="Tolak laporan">Tolak</button>
                   </div>
                 </div>
               );
@@ -112,8 +120,8 @@ export function AdminDashboard({
                   <td className="px-4 py-3 text-sm text-slate-700">{new Date(r.date).toLocaleDateString()}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => onApprove(r.id)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">✓ Verifikasi</button>
-                      <button onClick={() => onReject(r.id)} className="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700">✕ Tolak</button>
+                      <button onClick={() => { if (confirm("Verifikasi laporan ini")) onApprove(r.id); }} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">✓ Verifikasi</button>
+                      <button onClick={() => { if (confirm("Tolak laporan ini")) onReject(r.id); }} className="inline-flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-rose-700">✕ Tolak</button>
                     </div>
                   </td>
                 </tr>
