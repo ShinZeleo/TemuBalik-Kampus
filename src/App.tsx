@@ -170,6 +170,9 @@ export default function App() {
   type View = "login" | "home" | "report" | "admin";
   const [view, setView] = useState<View>("login");
   const [currentUser, setCurrentUser] = useState<"user" | "admin" | null>(null);
+  const [isAdminLogged, setIsAdminLogged] = useState<boolean>(
+  localStorage.getItem("tbk_admin_login") === "true"
+  );
 
   const [items, setItems] = useState<Item[]>(() => loadState("tbk_items", initialItems));
   const [queue, setQueue] = useState<ReportQueue[]>(() => loadState("tbk_queue", initialQueue));
@@ -279,6 +282,52 @@ export default function App() {
 
   if (!currentUser || view === "login") return <LoginScreen onLogin={handleLogin} />;
 
+  function LoginAdmin({ onSuccess }: { onSuccess: () => void }) {
+  const [password, setPassword] = React.useState("");
+  const [error, setError] = React.useState("");
+
+  function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (password === "admin123") {
+      localStorage.setItem("tbk_admin_login", "true");
+      onSuccess();
+    } else {
+      setError("Password salah, coba lagi.");
+    }
+  }
+
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+      <form
+        onSubmit={handleLogin}
+        className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-lg"
+      >
+        <h2 className="mb-4 text-center text-lg font-semibold text-slate-800">
+          Login Admin
+        </h2>
+        <label className="mb-1 block text-sm font-medium text-slate-600">
+          Password
+        </label>
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Masukkan admin123"
+          className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"
+        />
+        {error && <p className="mb-3 text-sm text-red-500">{error}</p>}
+        <button
+          type="submit"
+          className="w-full rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+        >
+          Masuk
+        </button>
+      </form>
+    </div>
+  );
+}
+
+
   return (
     <div className="min-h-dvh grid grid-rows-[auto_1fr_auto] bg-gradient-to-br from-slate-100 via-slate-100 to-slate-200">
       <header className="sticky top-0 z-20 border-b border-white/30 bg-slate-900/90 backdrop-blur">
@@ -328,20 +377,27 @@ export default function App() {
           />
         )}
         {currentUser === "user" && view === "report" && (
-          <ReportForm onBack={() => setView("home")} onSubmitted={handleSubmitted} />
+          <ReportForm
+            onSubmitted={handleSubmitted}
+            onBack={() => setView("home")}
+          />
         )}
-        {currentUser === "admin" && view === "admin" && (
+        {currentUser === "admin" && !isAdminLogged && (
+          <LoginAdmin onSuccess={() => setIsAdminLogged(true)} />
+        )}
+
+        {currentUser === "admin" && isAdminLogged && view === "admin" && (
           <AdminDashboard
-          queue={queue}
-          onApprove={approve}
-          onReject={reject}
-          items={items}
-          onExport={handleExport}
-          onImport={handleImport}
-          onReset={handleReset}
-          claims={claims}
-          onAcceptClaim={acceptClaim}
-          onRejectClaim={rejectClaim}
+            queue={queue}
+            onApprove={approve}
+            onReject={reject}
+            items={items}
+            onExport={handleExport}
+            onImport={handleImport}
+            onReset={handleReset}
+            claims={claims}
+            onAcceptClaim={acceptClaim}
+            onRejectClaim={rejectClaim}
           />
         )}
       </main>
